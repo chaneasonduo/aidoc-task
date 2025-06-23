@@ -25,6 +25,10 @@
    git clone <repository-url>
    cd ai-document-assistant
    ```
+如果本地配置有多个github用户，可以:
+```bash
+git remote set-url origin git@github.com-chaneasonduo:chaneasonduo/aidoc-task.git
+```
 
 2. 创建并激活虚拟环境
    ```bash
