@@ -1,4 +1,7 @@
 # Core
 fastapi[standard]
 langchain
-
+pydantic
+langchain[cohere]
+dashscope
+jupyter

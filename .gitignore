@@ -51,3 +51,5 @@ docs/_build/
 
 # 自动生成的文件
 openapi.json
+
+.ipynb_checkpoints
