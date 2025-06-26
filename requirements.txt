@@ -1,7 +1,9 @@
 # Core
 fastapi[standard]
 langchain
+langchain-community
 pydantic
 langchain[cohere]
 dashscope
 jupyter
+ipykernel

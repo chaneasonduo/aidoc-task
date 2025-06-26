@@ -3,6 +3,7 @@ from typing import Optional, List, Union, AsyncGenerator
 
 from langchain_core.language_models import BaseChatModel
 from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
+from langchain_community.chat_models import ChatOpenAI
 from langchain_community.chat_models import ChatTongyi
 
 
@@ -43,14 +44,19 @@ class LLMService:
         }
         
         # 根据模型名称选择不同的模型
-        if "qwen" in self.model_name.lower():
+        if "gpt" in self.model_name.lower():
+            return ChatOpenAI(
+                model_name=self.model_name,
+                **model_kwargs
+            )
+        elif "qwen" in self.model_name.lower():
             return ChatTongyi(
                 model_name=self.model_name,
                 **model_kwargs
             )
         else:
             # 默认使用OpenAI
-             return ChatTongyi(
+            return ChatOpenAI(
                 model_name=self.model_name,
                 **model_kwargs
             )
