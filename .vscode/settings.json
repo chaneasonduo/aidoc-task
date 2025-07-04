@@ -1,0 +1,10 @@
+{
+    "locale": "zh-cn",
+    "workbench.colorTheme": "Default Dark+",
+    "editor.fontSize": 14,
+    "terminal.integrated.fontSize": 14,
+    "files.autoSave": "onFocusChange",
+    "editor.formatOnSave": true,
+    "python.defaultInterpreterPath": "./.venv/bin/python",
+    "python.terminal.activateEnvironment": true
+} 

@@ -9,9 +9,12 @@
       "type": "debugpy",
       "request": "launch",
       "module": "uvicorn",
-      "args": ["appserver.main:app", "--reload"],
+      "args": [
+        "appserver.main:app",
+        "--reload"
+      ],
       "jinja": true,
-      "cwd":"${workspaceFolder}",
+      "cwd": "${workspaceFolder}",
       "python": "${workspaceFolder}/.venv/bin/python"
     }
   ]
