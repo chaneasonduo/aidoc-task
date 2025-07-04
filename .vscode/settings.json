@@ -6,5 +6,28 @@
     "files.autoSave": "onFocusChange",
     "editor.formatOnSave": true,
     "python.defaultInterpreterPath": "./.venv/bin/python",
-    "python.terminal.activateEnvironment": true
-} 
+    "python.terminal.activateEnvironment": true,
+    "python.terminal.activateEnvInCurrentTerminal": true,
+    "python.analysis.extraPaths": [
+        "./appserver",
+        "./appserver/models",
+        "./appserver/service"
+    ],
+    "python.linting.enabled": true,
+    "python.linting.pylintEnabled": false,
+    "python.linting.flake8Enabled": true,
+    "python.formatting.provider": "black",
+    "python.sortImports.args": [
+        "--profile",
+        "black"
+    ],
+    "editor.codeActionsOnSave": {
+        "source.organizeImports": true
+    },
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": [
+        "appserver/pytests"
+    ],
+    "python.testing.autoTestDiscoverOnSaveEnabled": true
+}

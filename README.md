@@ -105,6 +105,31 @@ docker build -t ai-document-assistant .
 docker run -d -p 8000:8000 ai-document-assistant
 ```
 
+## dashscope api
+```curl
+curl --location "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation" \
+--header "Authorization: Bearer $DASHSCOPE_API_KEY" \
+--header "Content-Type: application/json" \
+--data '{
+    "model": "qwen-plus",
+    "input":{
+        "messages":[      
+            {
+                "role": "system",
+                "content": "You are a helpful assistant."
+            },
+            {
+                "role": "user",
+                "content": "你是谁？"
+            }
+        ]
+    },
+    "parameters": {
+        "result_format": "message"
+    }
+}'
+```
+
 ## 贡献
 
 欢迎提交Issue和PR。
