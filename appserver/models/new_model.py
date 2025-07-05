@@ -39,13 +39,19 @@
 # - 全程遵循LangChain官方接口和类型要求，确保与LangChain生态兼容
 # - 代码风格清晰，注释详细，便于后续维护和扩展
 
-from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
 import json
 import os
+from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
 
 import requests
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, AIMessageChunk
+from langchain_core.messages import (
+    AIMessage,
+    AIMessageChunk,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+)
 from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 
 
@@ -128,6 +134,8 @@ class DashScopeAPIClient:
                 "result_format": "message",
                 "temperature": temperature,
                 "max_tokens": max_tokens,
+                # 增量输出
+                "incremental_output": "true"
             }
         }
         
@@ -229,47 +237,42 @@ class DashScopeAPIClient:
             model_name=model_name,
             temperature=temperature,
             max_tokens=max_tokens,
+            stream=True,
             **kwargs
         )
         
-        # 启用流式输出
-        payload["parameters"]["incremental_output"] = True
-        
         headers = self._build_headers()
         headers["Accept"] = "text/event-stream"
-        
+        headers["X-DashScope-SSE"] = "enable"
+
         # 发送流式API请求
         response = requests.post(
             self.api_url,
             json=payload,
             headers=headers,
-            timeout=self.timeout,
-            stream=True
+            timeout=self.timeout
         )
         
         if response.status_code != 200:
             raise ValueError(f"API请求失败: {response.status_code} - {response.text}")
         
         # 处理Server-Sent Events (SSE)格式的流式响应
-        accumulated_content = ""
         for line in response.iter_lines():
             if line:
                 line = line.decode('utf-8')
-                if line.startswith('data: '):
-                    data = line[6:]  # 移除 'data: ' 前缀
+                if line.startswith('data:'):
+                    data = line[5:]  # 移除 'data: ' 前缀
+                    if data.strip() == '[DONE]':
+                        break
                     try:
                         chunk_data = json.loads(data)
+                        # 解析官方API返回格式
                         if 'output' in chunk_data and 'choices' in chunk_data['output']:
                             choice = chunk_data['output']['choices'][0]
                             if 'message' in choice and 'content' in choice['message']:
-                                current_content = choice['message']['content']
-                                if current_content:
-                                    # 计算增量内容
-                                    if len(current_content) > len(accumulated_content):
-                                        delta_content = current_content[len(accumulated_content):]
-                                        if delta_content:
-                                            yield delta_content
-                                        accumulated_content = current_content
+                                content = choice['message']['content']
+                                if content:
+                                    yield content
                     except json.JSONDecodeError:
                         continue
 
@@ -361,14 +364,16 @@ class CustomChatModel(BaseChatModel):
             ChatGenerationChunk: 聊天生成块
         """
         # 使用API客户端进行流式调用
-        for chunk in self._api_client.call_api_stream(
+        result = self._api_client.call_api_stream(
             messages=messages,
             model_name=self.model_name,
             temperature=self.temperature,
             max_tokens=self.max_tokens,
             **kwargs
-        ):
-            # 创建ChatGenerationChunk
+        )
+
+        for chunk in result:
+            # 创建ChatGenerationChunk，直接使用流式返回的内容
             generation_chunk = ChatGenerationChunk(
                 message=AIMessageChunk(content=chunk)
             )
@@ -419,9 +424,12 @@ class CustomChatModel(BaseChatModel):
 
 if __name__ == "__main__":
     model = CustomChatModel()
-    print("====== _generate ======")
-    result = model._generate([SystemMessage(content="你是一个专业的AI助手"), HumanMessage(content="你好，请用简洁的语言介绍一下你自己")])   
-    print(result)
-    print("====== invoke ======")
-    result = model.invoke("你好，请用简洁的语言介绍一下你自己")
-    print(result)
+    # print("====== _generate ======")
+    # result = model._generate([SystemMessage(content="你是一个专业的AI助手"), HumanMessage(content="你好，请用简洁的语言介绍一下你自己")])   
+    # print(result)
+    # print("====== invoke ======")
+    # result = model.invoke("你好，请用简洁的语言介绍一下你自己")
+    # print(result)
+    result = model._stream([SystemMessage(content="你是一个专业的AI助手"), HumanMessage(content="你好，请用简洁的语言介绍一下你自己")])   
+    for chunk in result:
+        print(chunk)
