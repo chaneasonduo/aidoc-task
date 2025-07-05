@@ -1,39 +1,92 @@
+#!/usr/bin/env python3
+"""
+测试DashScope API客户端的功能
+"""
+
 import os
-import requests
-import json
+from new_model import DashScopeAPIClient
+from langchain_core.messages import SystemMessage, HumanMessage
 
-# DashScope官方API地址
-API_URL = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation"
 
-# 从环境变量读取API KEY
-API_KEY = os.getenv("DASHSCOPE_API_KEY", "")
-
-headers = {
-    "Authorization": f"Bearer {API_KEY}",
-    "Content-Type": "application/json"
-}
-
-payload = {
-    "model": "qwen-plus",
-    "input": {
-        "messages": [
-            {"role": "system", "content": "You are a helpful assistant."},
-            {"role": "user", "content": "你是谁？"}
+def test_dashscope_api_client():
+    """测试DashScope API客户端"""
+    
+    # 检查环境变量
+    api_key = os.getenv("DASHSCOPE_API_KEY")
+    if not api_key:
+        print("警告: 未设置DASHSCOPE_API_KEY环境变量，跳过API测试")
+        return
+    
+    try:
+        # 创建API客户端
+        client = DashScopeAPIClient(api_key=api_key)
+        print("✓ API客户端创建成功")
+        
+        # 准备测试消息
+        messages = [
+            SystemMessage(content="你是一个专业的AI助手"),
+            HumanMessage(content="你好，请用简洁的语言介绍一下你自己")
         ]
-    },
-    "parameters": {
-        "result_format": "message"
-    }
-}
+        
+        # 调用API
+        print("正在调用DashScope API...")
+        response = client.call_api(
+            messages=messages,
+            model_name="qwen-turbo",
+            temperature=0.7,
+            max_tokens=100
+        )
+        
+        print("✓ API调用成功")
+        print(f"响应内容: {response}")
+        
+    except Exception as e:
+        print(f"✗ 测试失败: {e}")
+
+
+def test_custom_chat_model():
+    """测试CustomChatModel"""
+    
+    # 检查环境变量
+    api_key = os.getenv("DASHSCOPE_API_KEY")
+    if not api_key:
+        print("警告: 未设置DASHSCOPE_API_KEY环境变量，跳过模型测试")
+        return
+    
+    try:
+        from new_model import CustomChatModel
+        
+        # 创建模型实例
+        model = CustomChatModel()
+        print("✓ CustomChatModel创建成功")
+        
+        # 测试_generate方法
+        messages = [
+            SystemMessage(content="你是一个专业的AI助手"),
+            HumanMessage(content="你好，请用简洁的语言介绍一下你自己")
+        ]
+        
+        print("正在测试_generate方法...")
+        result = model._generate(messages)
+        print("✓ _generate方法测试成功")
+        print(f"生成结果: {result}")
+        
+        # 测试invoke方法
+        print("正在测试invoke方法...")
+        result = model.invoke("你好，请用简洁的语言介绍一下你自己")
+        print("✓ invoke方法测试成功")
+        print(f"调用结果: {result}")
+        
+    except Exception as e:
+        print(f"✗ 测试失败: {e}")
+
 
 if __name__ == "__main__":
-    print("请求DashScope API...\n")
-    response = requests.post(API_URL, headers=headers, json=payload, timeout=60)
-    print(f"状态码: {response.status_code}")
-    try:
-        print(json.dumps(response.json(), ensure_ascii=False, indent=2))
-    except Exception:
-        print(response.text) 
+    print("=== 测试DashScope API客户端 ===")
+    test_dashscope_api_client()
+    
+    print("\n=== 测试CustomChatModel ===")
+    test_custom_chat_model()
 
 
 #import os

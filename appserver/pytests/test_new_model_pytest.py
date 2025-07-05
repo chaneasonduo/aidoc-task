@@ -156,3 +156,17 @@ def test_convert_ai_message_simple():
     result = convert_message_to_dict(message)
     assert result["role"] == "assistant"
     assert result["content"] == "AI回复" 
+
+
+def test_stream_generation():
+    """测试流式生成"""
+    model = CustomChatModel()
+    messages = [
+        SystemMessage(content="你是一个专业的AI助手"),
+        HumanMessage(content="你好")
+    ]
+    result = model._stream(messages)
+    for chunk in result:
+        print(chunk)
+    assert result is not None
+    #assert len(result) > 0

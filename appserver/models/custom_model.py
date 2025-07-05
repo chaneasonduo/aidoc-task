@@ -278,6 +278,25 @@ class CustomDashScopeLLM(LLM):
         })
         return ChatResult(generations=[ChatGeneration(message=message)])
     
+    def _make_request(self, payload: dict) -> dict:
+        """
+        发送HTTP请求到DashScope API
+        
+        Args:
+            payload: 请求payload
+            
+        Returns:
+            dict: API响应
+        """
+        headers = {
+            "Authorization": f"Bearer {self.dashscope_api_key}",
+            "Content-Type": "application/json"
+        }
+        response = requests.post(self.api_url, json=payload, headers=headers, timeout=60)
+        if response.status_code != 200:
+            raise ValueError(f"DashScope API错误: {response.text}")
+        return response.json()
+
     def _call_dashscope(self, payload: dict) -> Any:
         """
         调用DashScope API的通用方法
@@ -288,14 +307,7 @@ class CustomDashScopeLLM(LLM):
         Returns:
             Any: API响应
         """
-        headers = {
-            "Authorization": f"Bearer {self.dashscope_api_key}",
-            "Content-Type": "application/json"
-        }
-        response = requests.post(self.api_url, json=payload, headers=headers, timeout=60)
-        if response.status_code != 200:
-            raise ValueError(f"DashScope API错误: {response.text}")
-        return response.json()
+        return self._make_request(payload)
 
 
 # 使用示例
