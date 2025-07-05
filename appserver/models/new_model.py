@@ -40,11 +40,12 @@
 # - 代码风格清晰，注释详细，便于后续维护和扩展
 
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
+import json
 import os
 
 import requests
 from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
+from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage, AIMessageChunk
 from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 
 
@@ -197,6 +198,80 @@ class DashScopeAPIClient:
         # 解析响应
         response_data = response.json()
         return self._parse_response(response_data)
+    
+    def call_api_stream(
+        self,
+        messages: List[BaseMessage],
+        model_name: str,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = 2000,
+        **kwargs: Any
+    ) -> Iterator[str]:
+        """
+        流式调用DashScope API
+        
+        Args:
+            messages: 消息列表
+            model_name: 模型名称
+            temperature: 温度参数
+            max_tokens: 最大token数
+            **kwargs: 其他参数
+            
+        Yields:
+            str: 流式返回的内容片段
+            
+        Raises:
+            ValueError: API请求失败时抛出
+        """
+        # 构建请求数据
+        payload = self._build_payload(
+            messages=messages,
+            model_name=model_name,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs
+        )
+        
+        # 启用流式输出
+        payload["parameters"]["incremental_output"] = True
+        
+        headers = self._build_headers()
+        headers["Accept"] = "text/event-stream"
+        
+        # 发送流式API请求
+        response = requests.post(
+            self.api_url,
+            json=payload,
+            headers=headers,
+            timeout=self.timeout,
+            stream=True
+        )
+        
+        if response.status_code != 200:
+            raise ValueError(f"API请求失败: {response.status_code} - {response.text}")
+        
+        # 处理Server-Sent Events (SSE)格式的流式响应
+        accumulated_content = ""
+        for line in response.iter_lines():
+            if line:
+                line = line.decode('utf-8')
+                if line.startswith('data: '):
+                    data = line[6:]  # 移除 'data: ' 前缀
+                    try:
+                        chunk_data = json.loads(data)
+                        if 'output' in chunk_data and 'choices' in chunk_data['output']:
+                            choice = chunk_data['output']['choices'][0]
+                            if 'message' in choice and 'content' in choice['message']:
+                                current_content = choice['message']['content']
+                                if current_content:
+                                    # 计算增量内容
+                                    if len(current_content) > len(accumulated_content):
+                                        delta_content = current_content[len(accumulated_content):]
+                                        if delta_content:
+                                            yield delta_content
+                                        accumulated_content = current_content
+                    except json.JSONDecodeError:
+                        continue
 
 
 class CustomChatModel(BaseChatModel):
@@ -266,26 +341,38 @@ class CustomChatModel(BaseChatModel):
         # 创建ChatResult
         return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
     
-    # def _stream(
-    #     self,
-    #     messages: List[BaseMessage],
-    #     stop: Optional[List[str]] = None,
-    #     run_manager: Optional[Any] = None,
-    #     **kwargs: Any,
-    # ) -> Iterator[ChatGenerationChunk]:
-    #     """
-    #     流式生成聊天回复
+    def _stream(
+        self,
+        messages: List[BaseMessage],
+        stop: Optional[List[str]] = None,
+        run_manager: Optional[Any] = None,
+        **kwargs: Any,
+    ) -> Iterator[ChatGenerationChunk]:
+        """
+        流式生成聊天回复
         
-    #     Args:
-    #         messages: 输入消息列表
-    #         stop: 停止词列表
-    #         run_manager: 运行管理器
-    #         **kwargs: 其他参数
+        Args:
+            messages: 输入消息列表
+            stop: 停止词列表
+            run_manager: 运行管理器
+            **kwargs: 其他参数
             
-    #     Yields:
-    #         ChatGenerationChunk: 聊天生成块
-    #     """
-    #     pass
+        Yields:
+            ChatGenerationChunk: 聊天生成块
+        """
+        # 使用API客户端进行流式调用
+        for chunk in self._api_client.call_api_stream(
+            messages=messages,
+            model_name=self.model_name,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            **kwargs
+        ):
+            # 创建ChatGenerationChunk
+            generation_chunk = ChatGenerationChunk(
+                message=AIMessageChunk(content=chunk)
+            )
+            yield generation_chunk
     
     # async def _agenerate(
     #     self,
