@@ -40,6 +40,7 @@
 # - 代码风格清晰，注释详细，便于后续维护和扩展
 
 from typing import Any, AsyncIterator, Dict, Iterator, List, Optional
+import os
 
 import requests
 from langchain_core.language_models.chat_models import BaseChatModel
@@ -59,6 +60,145 @@ def convert_message_to_dict(message: BaseMessage) -> Dict[str, str]:
         return {"role": "user", "content": str(message.content)}
 
 
+class DashScopeAPIClient:
+    """
+    DashScope API客户端，封装HTTP请求逻辑
+    """
+    
+    def __init__(
+        self,
+        api_key: Optional[str] = None,
+        api_url: str = "https://dashscope.aliyuncs.com/api/v1/services/aigc/text-generation/generation",
+        timeout: int = 60
+    ):
+        """
+        初始化DashScope API客户端
+        
+        Args:
+            api_key: API密钥，如果为None则从环境变量获取
+            api_url: API端点URL
+            timeout: 请求超时时间（秒）
+        """
+        self.api_url = api_url
+        self.timeout = timeout
+        
+        # 获取API密钥
+        if api_key is None:
+            self.api_key = os.getenv("DASHSCOPE_API_KEY")
+            if self.api_key is None:
+                raise ValueError("请设置DASHSCOPE_API_KEY环境变量或直接提供api_key参数")
+        else:
+            self.api_key = api_key
+    
+    def _build_headers(self) -> Dict[str, str]:
+        """构建请求头"""
+        return {
+            "Authorization": f"Bearer {self.api_key}",
+            "Content-Type": "application/json"
+        }
+    
+    def _build_payload(
+        self,
+        messages: List[BaseMessage],
+        model_name: str,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = 2000,
+        **kwargs: Any
+    ) -> Dict[str, Any]:
+        """
+        构建API请求payload
+        
+        Args:
+            messages: 消息列表
+            model_name: 模型名称
+            temperature: 温度参数
+            max_tokens: 最大token数
+            **kwargs: 其他参数
+            
+        Returns:
+            Dict: API请求payload
+        """
+        payload = {
+            "model": model_name,
+            "input": {
+                "messages": [convert_message_to_dict(msg) for msg in messages]
+            },
+            "parameters": {
+                "result_format": "message",
+                "temperature": temperature,
+                "max_tokens": max_tokens,
+            }
+        }
+        
+        # 添加额外参数
+        if kwargs:
+            payload["parameters"].update(kwargs)
+        
+        return payload
+    
+    def _parse_response(self, response_data: Dict[str, Any]) -> str:
+        """
+        解析API响应
+        
+        Args:
+            response_data: API响应数据
+            
+        Returns:
+            str: 解析出的内容
+        """
+        return response_data["output"]["choices"][0]["message"]["content"]
+    
+    def call_api(
+        self,
+        messages: List[BaseMessage],
+        model_name: str,
+        temperature: float = 0.7,
+        max_tokens: Optional[int] = 2000,
+        **kwargs: Any
+    ) -> str:
+        """
+        调用DashScope API
+        
+        Args:
+            messages: 消息列表
+            model_name: 模型名称
+            temperature: 温度参数
+            max_tokens: 最大token数
+            **kwargs: 其他参数
+            
+        Returns:
+            str: API返回的内容
+            
+        Raises:
+            ValueError: API请求失败时抛出
+        """
+        # 构建请求数据
+        payload = self._build_payload(
+            messages=messages,
+            model_name=model_name,
+            temperature=temperature,
+            max_tokens=max_tokens,
+            **kwargs
+        )
+        
+        headers = self._build_headers()
+        
+        # 发送API请求
+        response = requests.post(
+            self.api_url,
+            json=payload,
+            headers=headers,
+            timeout=self.timeout
+        )
+        
+        if response.status_code != 200:
+            raise ValueError(f"API请求失败: {response.status_code} - {response.text}")
+        
+        # 解析响应
+        response_data = response.json()
+        return self._parse_response(response_data)
+
+
 class CustomChatModel(BaseChatModel):
     """
     自定义ChatModel，继承自BaseChatModel
@@ -75,12 +215,11 @@ class CustomChatModel(BaseChatModel):
     
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
-        # 如果没有提供api_key，从环境变量获取
-        if self.api_key is None:
-            import os
-            self.api_key = os.getenv("DASHSCOPE_API_KEY")
-            if self.api_key is None:
-                raise ValueError("请设置DASHSCOPE_API_KEY环境变量或直接提供api_key参数")
+        # 初始化API客户端
+        self._api_client = DashScopeAPIClient(
+            api_key=self.api_key,
+            api_url=self.api_url
+        )
     
     @property
     def _llm_type(self) -> str:
@@ -115,37 +254,14 @@ class CustomChatModel(BaseChatModel):
         Returns:
             ChatResult: 聊天结果
         """
-        # 构建API请求payload
-        payload = {
-            "model": self.model_name,
-            "input": {
-                "messages": [convert_message_to_dict(msg) for msg in messages]
-            },
-            "parameters": {
-                "result_format": "message",
-                "temperature": self.temperature,
-                "max_tokens": self.max_tokens,
-            }
-        }
-        
-        # 添加额外参数
-        if kwargs:
-            payload["parameters"].update(kwargs)
-        
-        # 发送API请求
-        headers = {
-            "Authorization": f"Bearer {self.api_key}",
-            "Content-Type": "application/json"
-        }
-        
-        response = requests.post(self.api_url, json=payload, headers=headers, timeout=60)
-        
-        if response.status_code != 200:
-            raise ValueError(f"API请求失败: {response.status_code} - {response.text}")
-        
-        # 解析响应
-        response_data = response.json()
-        content = response_data["output"]["choices"][0]["message"]["content"]
+        # 使用API客户端调用API
+        content = self._api_client.call_api(
+            messages=messages,
+            model_name=self.model_name,
+            temperature=self.temperature,
+            max_tokens=self.max_tokens,
+            **kwargs
+        )
         
         # 创建ChatResult
         return ChatResult(generations=[ChatGeneration(message=AIMessage(content=content))])
