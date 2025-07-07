@@ -1,3 +1,6 @@
+import logging
+logging.basicConfig(level=logging.DEBUG)
+
 import json
 import os
 import sys
@@ -160,13 +163,72 @@ def test_convert_ai_message_simple():
 
 def test_stream_generation():
     """测试流式生成"""
+    logging.info("开始测试流式生成")
+    
+    # 创建模型实例
     model = CustomChatModel()
+    assert model is not None, "模型实例创建失败"
+    
+    # 准备测试消息
     messages = [
         SystemMessage(content="你是一个专业的AI助手"),
         HumanMessage(content="你好")
     ]
+    assert len(messages) == 2, f"消息数量应为2，实际为 {len(messages)}"
+    
+    # 执行流式生成
     result = model._stream(messages)
-    for chunk in result:
-        print(chunk)
-    assert result is not None
-    #assert len(result) > 0
+    
+    # 验证结果不为空
+    assert result is not None, "流式生成结果不应为空"
+    assert hasattr(result, '__iter__'), "流式生成结果应该是可迭代的"
+    
+    # 收集所有chunk并验证
+    chunks = []
+    chunk_count = 0
+    
+    try:
+        for chunk in result:
+            chunk_count += 1
+            logging.info(f"接收到chunk {chunk_count}: {chunk}")
+            
+            # 验证chunk不为空
+            assert chunk is not None, f"第 {chunk_count} 个chunk不应为空"
+            
+            # 验证chunk类型（根据实际返回类型调整）
+            assert hasattr(chunk, 'content') or isinstance(chunk, (str, dict)), \
+                f"第 {chunk_count} 个chunk类型不正确: {type(chunk)}"
+            
+            chunks.append(chunk)
+            
+            # 防止无限循环
+            if chunk_count > 100:
+                logging.warning("chunk数量过多，可能存在无限循环")
+                break
+                
+    except Exception as e:
+        logging.error(f"处理chunk时发生错误: {e}")
+        raise
+    
+    # 验证至少有一个chunk
+    assert len(chunks) > 0, f"应该至少有一个chunk，实际收到 {len(chunks)} 个"
+    
+    # 验证chunk内容
+    total_content = ""
+    for i, chunk in enumerate(chunks):
+        if hasattr(chunk, 'content'):
+            content = chunk.content
+        elif isinstance(chunk, str):
+            content = chunk
+        elif isinstance(chunk, dict) and 'content' in chunk:
+            content = chunk['content']
+        else:
+            content = str(chunk)
+        
+        total_content += content
+        logging.info(f"chunk {i+1} 内容: {content[:50]}...")
+    
+    # 验证总内容不为空
+    assert len(total_content.strip()) > 0, "流式生成的总内容不应为空"
+    logging.info(f"总内容长度: {len(total_content)} 字符")
+    logging.info(f"流式生成测试完成，共接收到 {len(chunks)} 个chunk")
