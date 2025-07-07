@@ -26,3 +26,4 @@ flake8>=6.0.0
 
 # Testing framework
 pytest>=8.0.0
+pytest-asyncio
