@@ -27,3 +27,10 @@ flake8>=6.0.0
 # Testing framework
 pytest>=8.0.0
 pytest-asyncio
+
+# Additional dependencies
+python-docx
+sentence-transformers
+faiss-cpu
+cohere
+langchain-cohere
