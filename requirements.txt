@@ -37,3 +37,4 @@ langchain-cohere
 
 langchain[openai]
 python-dotenv
+python-docx

@@ -1,9 +1,9 @@
 import os
-from typing import Optional, List, Union, AsyncGenerator
+from typing import AsyncGenerator, List, Optional, Union
 
+from langchain_community.chat_models import Tongyi
 from langchain_core.language_models import BaseChatModel
-from langchain_core.messages import HumanMessage, AIMessage, SystemMessage
-from langchain_community.chat_models import ChatTongyi
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
 
 
 class LLMService:
@@ -44,13 +44,13 @@ class LLMService:
         
         # 根据模型名称选择不同的模型
         if "qwen" in self.model_name.lower():
-            return ChatTongyi(
+            return Tongyi(
                 model_name=self.model_name,
                 **model_kwargs
             )
         else:
             # 默认使用OpenAI
-             return ChatTongyi(
+             return Tongyi(
                 model_name=self.model_name,
                 **model_kwargs
             )
