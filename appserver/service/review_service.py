@@ -9,6 +9,19 @@ from langchain_core.messages import SystemMessage, HumanMessage
 from langchain_community.chat_models import ChatTongyi
 from langchain_cohere import ChatCohere
 
+
+# 尝试加载 .env 文件（如果存在）
+try:
+    from dotenv import load_dotenv
+    load_dotenv()
+except ImportError:
+    pass
+
+# 环境变量配置 - 如果 zsh 中设置的环境变量无法识别，可以在这里直接设置
+# os.environ["ANTHROPIC_API_KEY"] = "your_anthropic_api_key_here"
+# os.environ["COHERE_API_KEY"] = "your_cohere_api_key_here"
+# os.environ["OPENAI_API_KEY"] = "your_openai_api_key_here"
+
 # 1. 文档解析
 def extract_text_from_docx(file_path: str) -> List[str]:
     doc = Document(file_path)

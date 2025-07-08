@@ -12,12 +12,15 @@
 
 # 核心任务：
 1. 文档解析
-2. 基于评审要点，匹配文档中关联的内容,使用embedding模型
+2. 基于评审要点，匹配文档中关联的内容,使用llm进行匹配
 3. 关联内容注入提示词
 4. 请求LLM，获取结果
 
 # 要求
-1. 使用cohere 提供的langchain 模型
-2. 所有代码逻辑写到一个文件中：review_service.py
+1. 使用Tongyi 提供的langchain 模型
+2. 所有代码逻辑写到一个文件中：new_review_service.py
 3. 在main函数中编写调用逻辑
-4. 使用hugingface上的embedding模型
+
+# 显示链式思维过程
+1. 让模型根据评审要点，去原文档中匹配相近的内容，作为评审上下文content；
+2. 基于评审上下文content，结合评审要点，得出评审结论。
