@@ -38,3 +38,24 @@ langchain-cohere
 langchain[openai]
 python-dotenv
 python-docx
+
+# pytorch start
+torch==2.7.1
+torchvision==0.22.1
+torchaudio==2.7.1
+filelock==3.18.0
+fsspec==2025.5.1
+mpmath==1.3.0
+networkx==3.2.1
+pillow==11.3.0
+sympy==1.14.0
+torchtext>=0.10.0
+# pytorch end
+
+# huggingface transformers start
+transformers>=4.30.0
+sentence-transformers>=2.2.0
+# huggingface transformers end
+
+
+sentence-transformers
