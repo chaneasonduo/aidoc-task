@@ -56,3 +56,6 @@ openapi.json
 
 .DS_Store
 .env
+
+models/*
+!models/pre_train_model_path.txt
