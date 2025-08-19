@@ -24,3 +24,84 @@
 # 显示链式思维过程
 1. 让模型根据评审要点，去原文档中匹配相近的内容，作为评审上下文content；
 2. 基于评审上下文content，结合评审要点，得出评审结论。
+
+
+
+---
+我希望使用langchain，deepseek，langgraph，fastAPI来实现chatbot应用。需要使用langgraph的StateGraph定义工作流，然后进行异步流式输出。
+
+代码风格以官方文档为准，但需要是async异步的，以支持fastAPI的异步API。代码风格如下：
+import getpass
+import os
+
+if not os.environ.get("DEEPSEEK_API_KEY"):
+  os.environ["DEEPSEEK_API_KEY"] = getpass.getpass("Enter API key for DeepSeek: ")
+
+from langchain.chat_models import init_chat_model
+
+model = init_chat_model("deepseek-chat", model_provider="deepseek")
+
+from langgraph.checkpoint.memory import MemorySaver
+from langgraph.graph import START, MessagesState, StateGraph
+
+# Define a new graph
+workflow = StateGraph(state_schema=MessagesState)
+
+
+# Define the function that calls the model
+def call_model(state: MessagesState):
+    response = model.invoke(state["messages"])
+    return {"messages": response}
+
+
+# Define the (single) node in the graph
+workflow.add_edge(START, "model")
+workflow.add_node("model", call_model)
+
+# Add memory
+memory = MemorySaver()
+app = workflow.compile(checkpointer=memory)
+
+# Async function for node:
+async def call_model(state: MessagesState):
+    response = await model.ainvoke(state["messages"])
+    return {"messages": response}
+
+
+# Define graph as before:
+workflow = StateGraph(state_schema=MessagesState)
+workflow.add_edge(START, "model")
+workflow.add_node("model", call_model)
+app = workflow.compile(checkpointer=MemorySaver())
+
+# Async invocation:
+output = await app.ainvoke({"messages": input_messages}, config)
+output["messages"][-1].pretty_print()
+
+workflow = StateGraph(state_schema=MessagesState)
+
+
+def call_model(state: MessagesState):
+    prompt = prompt_template.invoke(state)
+    response = model.invoke(prompt)
+    return {"messages": response}
+
+
+workflow.add_edge(START, "model")
+workflow.add_node("model", call_model)
+
+memory = MemorySaver()
+app = workflow.compile(checkpointer=memory)
+
+config = {"configurable": {"thread_id": "abc789"}}
+query = "Hi I'm Todd, please tell me a joke."
+language = "English"
+
+input_messages = [HumanMessage(query)]
+for chunk, metadata in app.stream(
+    {"messages": input_messages, "language": language},
+    config,
+    stream_mode="messages",
+):
+    if isinstance(chunk, AIMessage):  # Filter to just model responses
+        print(chunk.content, end="|")

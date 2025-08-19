@@ -17,6 +17,18 @@
       }
     },
     {
+      "name": "Python Debugger 2: Current File",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${file}",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "python": "${command:python.interpreterPath}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
+      }
+    },
+    {
       "name": "Python Debugger: FastAPI",
       "type": "debugpy",
       "request": "launch",
@@ -30,6 +42,22 @@
       "python": "${command:python.interpreterPath}",
       "env": {
         "PYTHONPATH": "${workspaceFolder}/appserver"
+      }
+    },
+    {
+      "name": "Python Debugger 2: FastAPI",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "uvicorn",
+      "args": [
+        "demo:app_api",
+        "--reload"
+      ],
+      "jinja": true,
+      "cwd": "${workspaceFolder}",
+      "python": "${command:python.interpreterPath}",
+      "env": {
+        "PYTHONPATH": "${workspaceFolder}"
       }
     },
     {
