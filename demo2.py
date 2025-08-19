@@ -72,6 +72,27 @@ async def stream_endpoint(request: Request):
 
     return StreamingResponse(event_generator(), media_type="text/event-stream")
 
+
+@app.post("/stream/v2")
+async def stream_endpoint(request: Request):
+    data = await request.json()
+    topic = data.get("topic", "cats")
+
+    gen = event_generator(topic)
+
+    return StreamingResponse(gen, media_type="text/event-stream")
+
+
+async def event_generator(topic):
+    async for msg, metadata in graph.astream(
+        {"topic": topic},
+        stream_mode="messages",
+    ):
+        # token / chunk 输出
+        yield f"data: {json.dumps({'type':'token','content': msg.content})}\n\n"
+    # 流结束
+    yield "data: [DONE]\n\n"
+
 # ---------------------------
 # 6️⃣ 简单同步 /chat API（非流式）
 # ---------------------------

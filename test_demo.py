@@ -54,10 +54,37 @@ def test_stream():
                     print(f"[Raw] {data}")
 
 
+def test_stream_v2():
+    """测试流式 /stream/v2 API (SSE)"""
+    payload = {
+        "thread_id": "test-thread-2",
+        "message": "What's my name?",
+        "language": "English",
+    }
+    with requests.post(f"{BASE_URL}/stream/v2", json=payload, stream=True) as resp:
+        print("Status:", resp.status_code)
+        for line in resp.iter_lines(decode_unicode=True):
+            if not line:
+                continue
+            if line.startswith("data: "):
+                data = line.removeprefix("data: ").strip()
+                if data == "[DONE]":
+                    print("\n--- Stream finished ---")
+                    break
+                try:
+                    msg = json.loads(data)
+                    if msg["type"] == "token":
+                        print(msg["content"], end="", flush=True)
+                    elif msg["type"] == "final":
+                        print(f"\n[Final] {msg['content']}")
+                except json.JSONDecodeError:
+                    print(f"[Raw] {data}")
+
 def main():
-    test_chat()
+    # test_chat()
     print("===================")
-    test_stream()
+    test_stream_v2()
+
 
 
 if __name__ == "__main__":
