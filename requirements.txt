@@ -4,6 +4,7 @@ langchain-core>=0.3.57
 langchain-community>=0.3.23
 langchain_deepseek
 langgraph
+langchain-mcp-adapters
 
 # Pydantic for data validation
 pydantic>=2.11.0
