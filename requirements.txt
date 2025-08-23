@@ -41,6 +41,8 @@ langchain-cohere
 langchain[openai]
 python-dotenv
 python-docx
+# 抓包查看langchain 与 LLM 和 MCP的交互
+mitmproxy
 
 # # pytorch start
 # torch==2.7.1
