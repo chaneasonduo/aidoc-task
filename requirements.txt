@@ -44,6 +44,9 @@ python-docx
 # 抓包查看langchain 与 LLM 和 MCP的交互
 mitmproxy
 
+# vllm 部署llm
+vllm
+
 # # pytorch start
 # torch==2.7.1
 # torchvision==0.22.1

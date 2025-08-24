@@ -1,1 +1,5 @@
 预训练模型保存目录
+
+# huggingface-cli download deepseek-ai/DeepSeek-R1-0528-Qwen3-8B --local-dir ./models/deepseek-qwen-8b
+hf download deepseek-ai/DeepSeek-R1-0528-Qwen3-8B --local-dir ./models/deepseek-qwen-8b
+hf download Qwen/Qwen3-0.6B --local-dir ./models/Qwen3-0.6B
